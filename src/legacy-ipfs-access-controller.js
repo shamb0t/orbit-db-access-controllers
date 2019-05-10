@@ -1,9 +1,9 @@
 'use strict'
 const { io } = require('./utils')
 const AccessController = require('./access-controller-interface')
-const type = 'ipfs'
+const type = 'legacy-ipfs'
 
-class IPFSAccessController extends AccessController {
+class LegacyIPFSAccessController extends AccessController {
   constructor (ipfs, options) {
     super()
     this._ipfs = ipfs
@@ -20,13 +20,13 @@ class IPFSAccessController extends AccessController {
 
   async canAppend (entry, identityProvider) {
     // Allow if access list contain the writer's publicKey or is '*'
-    const publicKey = entry.identity.id
-    if (this.write.includes(publicKey) || this.write.includes('*')) {
-      return identityProvider.verifyIdentity(entry.identity)
+    const publicKey = entry.v === 0 ? entry.key : entry.identity.publicKey
+    if (this.write.includes(publicKey) ||
+      this.write.includes('*')) {
+      return true
     }
     return false
   }
-
 
   async load (address) {
     // Transform '/ipfs/QmPFtHi3cmfZerxtH9ySLdzpg1yFhocYDZgEZywdUXHxFU'
@@ -36,18 +36,18 @@ class IPFSAccessController extends AccessController {
     try {
       this._write = await io.read(this._ipfs, address)
     } catch (e) {
-      console.log('IPFSAccessController.load ERROR:', e)
+      console.log('LegacyIPFSAccessController.load ERROR:', e)
     }
   }
 
-  async save () {
+  async save (options) {
     let cid
+    const access = { admin: [], write: this.write, read: [] }
     try {
-
-      cid = await io.write(this._ipfs, 'dag-cbor', { write: JSON.stringify(this.write, null, 2) })
+      cid = await io.write(this._ipfs, JSON.stringify(access, null, 2), { format: 'dag-pb', hashAlg: 'sha2-256' })
 
     } catch (e) {
-      console.log('IPFSAccessController.save ERROR:', e)
+      console.log('LegacyIPFSAccessController.save ERROR:', e)
     }
     // return the manifest data
     return { address: cid }
@@ -55,8 +55,8 @@ class IPFSAccessController extends AccessController {
 
   static async create (orbitdb, options = {}) {
     options = { ...options, ...{ write: options.write || [orbitdb.identity.publicKey] } }
-    return new IPFSAccessController(orbitdb._ipfs, options)
+    return new LegacyIPFSAccessController(orbitdb._ipfs, options)
   }
 }
 
-module.exports = IPFSAccessController
+module.exports = LegacyIPFSAccessController
