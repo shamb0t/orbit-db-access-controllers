@@ -20,8 +20,9 @@ class IPFSAccessController extends AccessController {
 
   async canAppend (entry, identityProvider) {
     // Allow if access list contain the writer's publicKey or is '*'
-    const publicKey = entry.identity.id
-    if (this.write.includes(publicKey) || this.write.includes('*')) {
+    const key = entry.identity.id
+    if (this.write.includes(key) || this.write.includes('*')) {
+      //check identity is valid
       return identityProvider.verifyIdentity(entry.identity)
     }
     return false
@@ -54,7 +55,7 @@ class IPFSAccessController extends AccessController {
   }
 
   static async create (orbitdb, options = {}) {
-    options = { ...options, ...{ write: options.write || [orbitdb.identity.publicKey] } }
+    options = { ...options, ...{ write: options.write || [orbitdb.identity.id] } }
     return new IPFSAccessController(orbitdb._ipfs, options)
   }
 }
