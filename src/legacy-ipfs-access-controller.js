@@ -20,7 +20,7 @@ class LegacyIPFSAccessController extends AccessController {
 
   async canAppend (entry, identityProvider) {
     // Allow if access list contain the writer's publicKey or is '*'
-    const publicKey = entry.v === 0 ? entry.key : entry.identity.publicKey
+    const publicKey = entry.key
     if (this.write.includes(publicKey) ||
       this.write.includes('*')) {
       return true
@@ -44,7 +44,7 @@ class LegacyIPFSAccessController extends AccessController {
     let cid
     const access = { admin: [], write: this.write, read: [] }
     try {
-      cid = await io.write(this._ipfs, JSON.stringify(access, null, 2), { format: 'dag-pb', hashAlg: 'sha2-256' })
+      cid = await io.write(this._ipfs, 'dag-pb', JSON.stringify(access, null, 2))
 
     } catch (e) {
       console.log('LegacyIPFSAccessController.save ERROR:', e)
